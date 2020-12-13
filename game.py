@@ -43,6 +43,9 @@ class Laser():
 
     def off_screen(self, height):
         return not(self.y <= height and self.y >= 0)
+    
+    def on_screen(self, height):
+        return (self.y <= height and self.y >= 0)
 
     def collision(self, obj):
         return collide(self, obj)
@@ -75,11 +78,11 @@ class Ship():
             laser.move(vel)
             if laser.off_screen(HEIGHT):
                 self.lasers.remove(laser)
-            elif laser.collision(obj):
+            elif laser.collision(obj): # collision to the players ship 
                 obj.health -= 1
                 WIN.blit(EXPLOSION, (laser.x, laser.y + 15))
                 pygame.display.update()
-                pygame.time.delay(30)
+                pygame.time.delay(250)
                 self.lasers.clear()
 
 
@@ -125,8 +128,9 @@ class Player(Ship):
                         WIN.blit(EXPLOSION, (laser.x, laser.y - 10))
                         pygame.display.update()
                         pygame.time.delay(30)
-                        if laser in self.lasers:
-                            self.lasers.remove(laser)
+                        self.lasers.clear()
+                    
+                            
 
 
 class Enemy(Ship):
@@ -232,10 +236,9 @@ def main():
             if len(enemies) - 1 == 0:
                 score += 10
 
-
         if len(enemies) == 0: # ends the level
             level += 1
-            wave_length = 5 * level
+            wave_length = (5 * level) + random.randint(1,9)
 
             for i in range(wave_length):
                 enemy = Enemy(random.randrange(50, WIDTH - 100), random.randrange(-1500, -100),
@@ -268,27 +271,26 @@ def main():
                 enemies.remove(enemy)
 
 
-
-
-
         if collide(enemy, player):
             lives -= 1
             enemies.remove(enemy)
         elif enemy.y + enemy.get_height() > HEIGHT:
             enemies.remove(enemy)
+
+
         lives = player.health
-
-
         start_life = lives
 
         if start_level != level and level > 1 and start_life == lives:
             lives_left = main_font.render(f"Lives Left :{lives}", 1, (255, 255, 255))
-            WIN.blit(lives_left, (WIDTH // 2 - lives_left.get_width() / 2, HEIGHT // 2 - 50))
+            WIN.blit(lives_left, (WIDTH // 2 - lives_left.get_width() / 2, HEIGHT // 2 - 25))
             bonus_score = main_font.render(f"Bonus Score :{lives * 10}", 1, (255, 255, 255))
-            WIN.blit(bonus_score, (WIDTH // 2 - lives_left.get_width() / 2, HEIGHT // 2 + 50))
+            WIN.blit(bonus_score, (WIDTH // 2 - lives_left.get_width() / 2, HEIGHT // 2 + 25))
             pygame.display.update()
             score += lives * 10
             pygame.time.delay(1500)
+
+    
 
 
         player.move_lasers(- laser_vel, enemies)
