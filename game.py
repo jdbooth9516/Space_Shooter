@@ -1,7 +1,10 @@
 import pygame
 import os
 import random
+import shelve
+
 pygame.font.init()
+pygame.mixer.init()
 
 
 WIDTH, HEIGHT = 850, 950
@@ -22,11 +25,13 @@ RED_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_red.png"))
 GREEN_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_green.png"))
 BLUE_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_blue.png"))
 YELLOW_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_yellow.png"))
+LASER_SOUND = pygame.mixer.Sound("zapsplat_multimedia_laser_weapon_fire_001_25877.mp3")
 
 #Explosion
 EXPLOSION = pygame.transform.scale(pygame.image.load(os.path.join("assets", "explosion.png")), (60,60))
 #BG
 BG = pygame.transform.scale(pygame.image.load(os.path.join("assets", "background-black.png")), (WIDTH, HEIGHT))
+
 
 class Laser():
     def __init__(self, x, y, img):
@@ -83,7 +88,7 @@ class Ship():
                 WIN.blit(EXPLOSION, (laser.x, laser.y + 15))
                 pygame.display.update()
                 pygame.time.delay(250)
-                self.lasers.clear()
+                self.lasers.remove(laser)
 
 
     def cooldown(self):
@@ -97,6 +102,10 @@ class Ship():
             laser = Laser(self.x, self.y, self.laser_img)
             self.lasers.append(laser)
             self.cool_down_counter = 1
+            pygame.mixer.Sound.play(LASER_SOUND, 500)
+            pygame.mixer.Sound.fadeout(LASER_SOUND, 500)
+            
+            
 
 
     def get_width(self):
@@ -113,6 +122,8 @@ class Player(Ship):
         self.laser_img = YELLOW_LASER
         self.mask = pygame.mask.from_surface(self.ship_img)
         self.max_health = health
+        pygame.mixer.music.load("bensound-scifi.mp3")
+        pygame.mixer.music.play(-1)
 
 
     def move_lasers(self, vel, objs):
@@ -128,12 +139,11 @@ class Player(Ship):
                         WIN.blit(EXPLOSION, (laser.x, laser.y - 10))
                         pygame.display.update()
                         pygame.time.delay(15)
+                        self.lasers.remove(laser)
 
                     
                             
-
-
-class Enemy(Ship):
+class Enemy(Ship): 
     COLOR_MAP = {
                 "red": (RED_SPACE_SHIP, RED_LASER),
                 "green": (GREEN_SPACE_SHIP, GREEN_LASER),
@@ -147,6 +157,36 @@ class Enemy(Ship):
 
     def move(self, vel):
         self.y += vel
+        
+    def special(self):
+        if self.ship_img == RED_SPACE_SHIP:
+            if self.y >= random.randrange(100, 200) and self.y <= random.randrange(200, 250) and self.x + 100 <= WIDTH:
+                self.x += 1 
+            elif self.y >= random.randrange(250, 300) and self.y <= random.randrange(300, 350) and self.x - 100 >= 0:
+                self.x -= 1 
+            elif self.y >= random.randrange(350, 400) and self.y <= random.randrange(400, 450) and self.x + 100 <= WIDTH:
+                self.x += 1 
+            elif self.y >= random.randrange(450, 500) and self.y <= random.randrange(500, 550) and self.x - 100 >= 0:
+                self.x -= 1       
+            elif self.y >= random.randrange(550, 600) and self.y <= random.randrange(600, 650) and self.x + 100 <= WIDTH:
+                self.x += 1 
+            elif self.y >= random.randrange(650, 700) and self.y <= random.randrange(700, 750) and self.x - 100 >= 0:
+                self.x -= 1
+
+        if self.ship_img == GREEN_SPACE_SHIP:
+            if self.y >= random.randrange(50, 250) and self.y <= random.randrange(250, 450) and self.x - 100 >= 0:
+                self.x -= 3 
+            elif self.y >= random.randrange(450, 550) and self.y <= random.randrange(500, 650) and self.x + 100 <= WIDTH:
+                self.x += 3 
+            elif self.y >= random.randrange(650, 750) and self.y <= random.randrange(750, 850) and self.x - 100 >= 0:
+                self.x -= 3 
+            
+        if self.ship_img == BLUE_SPACE_SHIP:
+            if self.y >= random.randrange(300, 600)  and self.x - 100 >= 0:
+                self.y += 10 
+            elif self.y >= random.randrange(450, 550) and self.x + 100 <= WIDTH:
+                self.y += 10
+
 
     def shoot(self):
         if self.cool_down_counter == 0:
@@ -164,7 +204,6 @@ def collide(obj1, obj2,):
 
 
 def main():
-
     run = True
     FPS = 60
     level = 0
@@ -173,10 +212,9 @@ def main():
     start_life = lives
     main_font = pygame.font.SysFont("comicsans", 50)
     lost_font = pygame.font.SysFont("comicsans", 75)
-
     enemies = []
     wave_length = 5
-
+    
     enemy_vel = 1
     player_vel = 5
     laser_vel = 5
@@ -187,8 +225,13 @@ def main():
 
     lost = False
     lost_count = 0
+    pygame.mixer.music.load("bensound-scifi.mp3")
+    pygame.mixer.music.play(-1)
 
-
+    with open('score.txt') as file_object:
+        contents = file_object.read()
+    
+    highscore = int(contents) 
 
 
     def redraw_window():
@@ -197,11 +240,13 @@ def main():
         lives_label = main_font.render(f"Lives: {lives}", 1, (255,255,255))
         level_label = main_font.render(f"Level: {level}", 1, (255,255,255))
         score_label = main_font.render(f"{score}", 1, (255, 255, 255))
+        high_label = main_font.render(f"{highscore}", 1, (212,175,55))
 
 
         WIN.blit(lives_label, (10, 10))
         WIN.blit(level_label, (WIDTH - level_label.get_width() - 10, 10))
-        WIN.blit(score_label, (WIDTH // 2 - score_label.get_width(), 10))
+        WIN.blit(score_label, (WIDTH // 2 + score_label.get_width(), 10))
+        WIN.blit(high_label, (WIDTH // 2 - high_label.get_width(), 10))
 
         for enemy in enemies:
             enemy.draw(WIN)
@@ -210,8 +255,9 @@ def main():
 
         if lost:
             lost_label = lost_font.render("Game Over!!", 1, (255,255,255))
+            score_label = lost_font.render("Your Score: {}".format(final_score), 1,(255,255,255))
             WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width() / 2, 350))
-
+            WIN.blit(score_label, (WIDTH/2 - score_label.get_width() / 2, 375))
         pygame.display.update()
 
 
@@ -225,6 +271,11 @@ def main():
         if lives <= 0: # determines if when player lost
             lost = True
             lost_count += 1
+            final_score = score
+            if final_score > int(highscore):
+                filename = 'score.txt'
+                with open(filename, 'w') as file_object:
+                    file_object.write(str(final_score))
 
         if lost:
             if lost_count > FPS * 3:
@@ -242,11 +293,11 @@ def main():
             level += 1
             wave_length = (5 * level) + random.randint(1,9)
 
+            # create the enemies for the level 
             for i in range(wave_length):
-                enemy = Enemy(random.randrange(50, WIDTH - 100), random.randrange(-1500, -100),
-                          random.choice(["red", "blue", "green"]))
+                enemy = Enemy(random.randrange(50, WIDTH - 100), random.randrange(-1500, -100), random.choice(["red", "blue", "green"]))
                 enemies.append(enemy)
-
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -262,9 +313,10 @@ def main():
         if keys[pygame.K_UP]:
             player.shoot()
 
-
+        # movement of the of the enemy ships and lasers 
         for enemy in enemies[:]:
             enemy.move(enemy_vel)
+            enemy.special()
             enemy.move_lasers(laser_vel, player)
 
             if random.randrange(0, 1.5*60)  == 1:
@@ -311,12 +363,19 @@ def main_menu():
         WIN.blit(move_label, (WIDTH // 2 - title_label.get_width() / 2, 400))
         WIN.blit(fire_label, (WIDTH // 2 - title_label.get_width() / 2, 450))
         pygame.display.update()
+        pygame.mixer.music.load("bensound-scifi.mp3")
+        pygame.mixer.music.play(-1)
+
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
             if event.type == pygame.KEYDOWN:
                 main()
 
+
+
     pygame.quit()
 
 main_menu()
+
