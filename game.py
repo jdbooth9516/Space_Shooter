@@ -29,6 +29,7 @@ LASER_SOUND = pygame.mixer.Sound("zapsplat_multimedia_laser_weapon_fire_001_2587
 
 #Explosion
 EXPLOSION = pygame.transform.scale(pygame.image.load(os.path.join("assets", "explosion.png")), (60,60))
+EXPLOSION_SOUND= pygame.mixer.Sound("zapsplat_explosion_designed_massive_impact_smash_glass_debris_fast_shockwave_002_48041-[AudioTrimmer.com].mp3")
 #BG
 BG = pygame.transform.scale(pygame.image.load(os.path.join("assets", "background-black.png")), (WIDTH, HEIGHT))
 
@@ -86,6 +87,9 @@ class Ship():
             elif laser.collision(obj): # collision to the players ship 
                 obj.health -= 1
                 WIN.blit(EXPLOSION, (laser.x, laser.y + 15))
+                pygame.mixer.Sound.set_volume(EXPLOSION_SOUND, 1.0)
+                pygame.mixer.Sound.play(EXPLOSION_SOUND, 1000)
+                pygame.mixer.Sound.fadeout(EXPLOSION_SOUND, 500)
                 pygame.display.update()
                 pygame.time.delay(250)
                 self.lasers.remove(laser)
@@ -102,8 +106,10 @@ class Ship():
             laser = Laser(self.x, self.y, self.laser_img)
             self.lasers.append(laser)
             self.cool_down_counter = 1
+            pygame.mixer.Sound.set_volume(LASER_SOUND, 0.5)
             pygame.mixer.Sound.play(LASER_SOUND, 500)
             pygame.mixer.Sound.fadeout(LASER_SOUND, 500)
+            
             
             
 
@@ -137,9 +143,18 @@ class Player(Ship):
                     if laser.collision(obj):
                         objs.remove(obj)
                         WIN.blit(EXPLOSION, (laser.x, laser.y - 10))
+                        pygame.mixer.Sound.set_volume(EXPLOSION_SOUND, 1.0)
+                        pygame.mixer.Sound.play(EXPLOSION_SOUND, 1000)
+                        pygame.mixer.Sound.fadeout(EXPLOSION_SOUND, 500)
+
                         pygame.display.update()
                         pygame.time.delay(15)
-                        self.lasers.remove(laser)
+                        while True:
+                            try:
+                                self.lasers.remove(laser)
+                                break
+                            except: ValueError
+                                
 
                     
                             
@@ -257,7 +272,7 @@ def main():
             lost_label = lost_font.render("Game Over!!", 1, (255,255,255))
             score_label = lost_font.render("Your Score: {}".format(final_score), 1,(255,255,255))
             WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width() / 2, 350))
-            WIN.blit(score_label, (WIDTH/2 - score_label.get_width() / 2, 375))
+            WIN.blit(score_label, (WIDTH/2 - score_label.get_width() / 2, 400))
         pygame.display.update()
 
 
